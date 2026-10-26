@@ -1,7 +1,24 @@
 /* AI Sharks v2 phone additions (on top of ../v1/style.css and ../sharks.css). Phone first, 375x812. */
 .sk2 [hidden] { display: none !important; }
 
-/* intro panel */
+/* reviewer panel */
+.rev-grid { display: grid; gap: 8px; margin: 16px 0 8px; }
+.rev { display: grid; grid-template-columns: 42px 1fr; grid-template-rows: auto auto; column-gap: 12px; align-items: center; padding: 12px 14px; border-radius: 16px; background: rgba(255,255,255,.04); border: 1px solid rgba(159,216,255,.22); text-align: left; }
+.rev b { font-size: 15px; }
+.rev small { grid-column: 2; color: #9fd8ff; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+.rev p { grid-column: 1 / -1; margin: 6px 0 0; color: #c9d4ea; font-size: 14px; }
+.rev-mark { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; font-weight: 800; color: #10102e; background: #d7e6ff; }
+.rev-mark[data-shark='seth'] { background: #FFC861; }
+.rev-mark[data-shark='riya'] { background: #FF8FC0; }
+.rev-mark[data-shark='kabir'] { background: #62BBF3; }
+.rev-mark[data-shark='mummy'] { background: #C49BFF; }
+.rev-points { margin: 8px 0 16px; padding-left: 18px; color: #c9d4ea; }
+.rev-points li { margin: 6px 0; }
+.sk-card .rev-mark { width: 48px; height: 48px; }
+.sk-row { align-items: center; }
+.sk-row .rev-mark { margin: 0 auto; }
+.sk-row .rev-mark.is-dim { opacity: .35; }
+.sk-row .rev-mark.is-active { outline: 2px solid #fff; }
 .sk2-panel { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; align-items: end; margin: 4px -4px 4px; padding-top: 6px; background: radial-gradient(60% 70% at 50% 100%, rgba(143,107,255,.3), transparent 70%); }
 .sk2-panel .sk-av:nth-child(2) { transform: translateY(-8px) scale(1.05); }
 .sk2-panel .sk-plate b { font-size: 12.5px; white-space: normal; line-height: 1.15; }

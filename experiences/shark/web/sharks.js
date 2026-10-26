@@ -11,9 +11,9 @@ export const SHARKS = [
 // AI Sharks v2 personas: fictional archetypes (not real people, not parodies of anyone). Drawn as the same
 // cartoon shark with their own colours and props. Names, bios and lenses also live in lib/v2/personas.js.
 export const PERSONAS = [
-  { id: 'seth', name: 'Seth Dhanraj', short: 'Seth', label: 'SETH', role: 'Margin + distribution', catch: 'Margin kitna hai, beta?', bio: 'Purane zamane ka business baron. 40 saal se dukaan se godown tak sab dekha hai.', icon: 'chart', color: '#FFC861', body: ['#FFE0A3', '#E0A04A', '#9A5A1C'] },
-  { id: 'riya', name: 'Riya Rao', short: 'Riya', label: 'RIYA', role: 'Customer + brand', catch: 'Insta pe bikega?', bio: 'D2C beauty brand ki founder. Customer ki nas nas pehchaanti hai.', icon: 'heart', color: '#FF8FC0', body: ['#FFC2D6', '#E45B8F', '#9C2A5E'] },
-  { id: 'kabir', name: "Kabir 'Scale' Mehta", short: 'Kabir', label: 'KABIR', role: 'Market + scale', catch: '10x kaise hoga?', bio: 'Bengaluru ka SaaS founder, ab VC. Har idea ko 10x karke dekhta hai.', icon: 'rocket', color: '#62BBF3', body: ['#9BDCFF', '#3C86D8', '#1F4F9E'] },
+  { id: 'seth', name: 'Dhanraj Seth', short: 'Dhanraj', label: 'FINANCE', role: 'Unit economics', catch: 'Price, cost, and what is left.', bio: 'Looks at margin, cash, and whether the offer can be delivered.', icon: 'chart', color: '#FFC861', body: ['#FFE0A3', '#E0A04A', '#9A5A1C'] },
+  { id: 'riya', name: 'Riya Rao', short: 'Riya', label: 'CUSTOMER', role: 'Customer and brand', catch: 'Who pays, and why they stay.', bio: 'Looks at the buyer, the problem, and whether the offer is easy to choose.', icon: 'heart', color: '#FF8FC0', body: ['#FFC2D6', '#E45B8F', '#9C2A5E'] },
+  { id: 'kabir', name: 'Kabir Mehta', short: 'Kabir', label: 'GROWTH', role: 'Market and scale', catch: 'Can this grow past the first city?', bio: 'Looks at the market and what has to be true for the business to get larger.', icon: 'rocket', color: '#62BBF3', body: ['#9BDCFF', '#3C86D8', '#1F4F9E'] },
   { id: 'mummy', name: 'Mummy Angel Investor', short: 'Mummy', label: 'MUMMY', role: 'Risk + trust', catch: 'Safe hai na? Mera paisa doob toh nahi jayega?', bio: 'Ghar ki CFO. Har rupaye ka hisaab, aur sabse zyada pyaar.', icon: 'shield', color: '#C49BFF', body: ['#E3D0FF', '#9A6EE0', '#5B3A9E'] },
 ];
 export const PERSONA = Object.fromEntries(PERSONAS.map((s) => [s.id, s]));

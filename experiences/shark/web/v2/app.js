@@ -4,11 +4,11 @@
 //   follow gate -> 4-axis scorecard, per-shark Deal / Main out hoon, mini-MBA lesson, share card.
 // TV rule (CHECK_build 12/13): the TV only ever gets the server's `tv` blocks (bank lines, templates, numbers)
 // and fixed orchestra text from ../tvtext.js. The visitor's words and the model's lines stay on this phone.
-import { api, track, tvMirror, tvToggle, hero, isHero, h, sleep, safetyMode as coreSafetyMode } from '/core/kit.js';
+import { api, track, tvMirror, hero, isHero, h, sleep, safetyMode as coreSafetyMode } from '/core/kit.js';
 import { Orchestra } from '/core/orchestra.js';
 import { gate } from '/core/gate.js';
 import { makeShareCard, shareCard, sendToFriends } from '/core/sharecard.js';
-import { PERSONA, avatar, talk, typeInto } from '../sharks.js';
+import { PERSONA, typeInto } from '../sharks.js';
 import { speechSupported, listen } from '../voice.js';
 import { ORX, COPY, fill } from '../tvtext.js';
 
@@ -18,18 +18,16 @@ const HERO = isHero();
 const CARD_MS = 15000;
 const ANSWER_MS = 10000;
 const CARDS = [
-  { id: 'idea', kicker: 'Idea', q: 'Tumhara idea, ek line mein', hint: 'Kya banaoge? Jaise: hostel ke liye laundry app.' },
-  { id: 'customer', kicker: 'Customer', q: 'Kaun khareedega?', hint: 'Tumhara pehla customer kaun hai?' },
-  { id: 'problem', kicker: 'Problem', q: 'Kyun zaroori hai?', hint: 'Unki kya dikkat solve hogi?' },
-  { id: 'paisa', kicker: 'Paisa', q: 'Kaise kamaoge?', hint: 'Price kya hoga, kharcha kitna?' },
+  { id: 'idea', kicker: 'Offer', q: 'What do you sell?', hint: 'One sentence. What the customer actually gets.' },
+  { id: 'customer', kicker: 'Customer', q: 'Who pays?', hint: 'The first real buyer. Not “everyone”.' },
+  { id: 'problem', kicker: 'Problem', q: 'What pain do you remove?', hint: 'What they do today, and why that fails.' },
+  { id: 'paisa', kicker: 'Revenue', q: 'How does it make money?', hint: 'Price, cost, and what is left.' },
 ];
 const SRC = { claude: 'claude reply', mock: 'mock reply', fixture: 'offline demo sharks', hero: 'hero demo pitch' };
 
 const st = { mode: 'text', coop: false, pick: null, safetyMode: 'degraded', parts: {}, q: null, answers: {}, v: null, orx: null, mirror: null, card: null, revealed: false, tvSent: false, turn: null, stage: null, prompts: [] };
 let heroProfile = null;
 
-// ---------- core stage (CONTRACT 12.4): big-screen turn, nickname, reward token ----------
-const cfgP = fetch('/api/shark/config').then((r) => r.json()).catch(() => ({}));
 const modeReady = applySafetyMode();
 
 // safetyMode (core, CONTRACT 13): 'live' = typing and voice, gated by core's live crisis check; 'degraded' (no live
@@ -51,45 +49,26 @@ async function applySafetyMode() {
   if (degraded) $('answer-row').hidden = true;
 }
 
-async function loadStage() {
-  // Only when core's Stage API is live (our server says so), so a missing module never 404s in the console.
-  const cfg = await cfgP;
-  if (!cfg.stage) return;
-  try { st.stage = await import('/core/stage.js'); } catch { st.stage = null; return; }
-  // "Big screen pe khelo": core's nickname picker + queue; onTurn runs when it is this phone's turn.
-  await st.stage.bigScreenButton($('big-screen'), { onTurn: async (t) => { st.turn = t; await modeReady; if (st.safetyMode === 'live') startCards(speechSupported() ? 'voice' : 'text'); else openPick(); } });
-  // Leaderboard without the big screen: pick a nickname (1 of 3, no text box).
-  $('nick-box').hidden = false;
-  $('nick-chips').replaceChildren(h('button', { class: 'sk-chip', type: 'button', 'data-pz': 'board-nick', onclick: async (e) => {
-    const btn = e.currentTarget; // captured before the await (currentTarget is null afterwards)
-    const n = await st.stage.pickNickname({ title: 'Leaderboard ke liye naam chuno' });
-    if (n) { btn.textContent = `Leaderboard naam: ${n}`; btn.classList.add('picked'); }
-  } }, 'Nickname chuno'));
+function reviewerMark(id) {
+  const p = PERSONA[id];
+  return h('span', { class: 'rev-mark', 'data-shark': id }, p.short.slice(0, 1));
 }
 
 // ---------- intro ----------
 $('intro-panel').append(...['seth', 'riya', 'kabir'].map((id) => {
   const p = PERSONA[id];
-  const el = avatar(id, { label: true });
-  el.appendChild(h('div', { class: 'sk2-catch' }, `"${p.catch}"`));
-  return el;
+  return h('article', { class: 'rev' },
+    reviewerMark(id),
+    h('b', {}, p.name),
+    h('small', {}, p.role),
+    h('p', {}, p.catch));
 }));
-$('intro-mummy').replaceChildren(avatar('mummy', { cls: 'mini' }), h('span', {}, h('b', {}, 'Kabhi kabhi Mummy Angel Investor bhi aa jaati hain: '), `"${PERSONA.mummy.catch}"`));
-$('tv-toggle').replaceWith(tvToggle((on) => st.mirror?.setEnabled(on)));
-for (const b of document.querySelectorAll('.sk2-seg')) {
-  b.addEventListener('click', () => {
-    st.coop = b.dataset.mode === 'coop';
-    for (const x of document.querySelectorAll('.sk2-seg')) { x.classList.toggle('on', x === b); x.setAttribute('aria-checked', x === b ? 'true' : 'false'); }
-    $('coop-note').hidden = !st.coop;
-  });
-}
 if (!speechSupported()) {
   $('go-voice').hidden = true;
-  $('voice-note').textContent = 'Is browser mein voice nahi chalega, type karke pitch karo. Mazaa bilkul same!';
+  $('voice-note').textContent = 'This browser has no speech input. Write the brief instead. The review is the same.';
 }
 $('go-voice').addEventListener('click', () => startCards('voice'));
 $('go-text').addEventListener('click', () => startCards('text'));
-loadStage();
 
 // ---------- chip path: "Type karna nahi? Idea type chuno" ----------
 let pcIdx = 0;
@@ -110,7 +89,7 @@ function openPickCard(i) {
   const c = CARDS[i];
   show('s-pickcard');
   st.cardMirror?.custom('card', { state: 'pitching', step: i + 1, items: ['seth', 'riya', 'kabir'].map((id) => ({ id })) });
-  $('pc-kicker').textContent = `Card ${i + 1}/4 · ${c.kicker}`;
+  $('pc-kicker').textContent = `${i + 1} of 4 · ${c.kicker}`;
   [...$('pc-dots').children].forEach((d, j) => { d.className = j < i ? 'done' : j === i ? 'on' : ''; });
   $('pc-q').textContent = c.q;
   $('pc-turn').hidden = !st.coop;
@@ -152,7 +131,7 @@ let extended = false;
 function stopMic() { mic?.stop(); mic = null; }
 function micUi(state) {
   $('card').dataset.state = state;
-  $('card-state').textContent = { idle: 'Tap karke bolo', listening: 'Sun rahe hain... bolte raho', stopped: 'Ho gaya! Edit karke aage badho', denied: 'Mic ki permission nahi mili. Type karo!', network: 'Voice ke liye net chahiye. Type karo!', error: 'Voice nahi chala. Type karo!', typing: 'Type kar rahe ho' }[state] || '';
+  $('card-state').textContent = { idle: 'Tap to speak', listening: 'Listening. Keep going.', stopped: 'Done. Edit it, then continue.', denied: 'Microphone permission was denied. Type instead.', network: 'Speech needs a network connection. Type instead.', error: 'Speech failed. Type instead.', typing: 'Typing' }[state] || '';
 }
 function startMic() {
   if (!speechSupported()) return;
@@ -185,7 +164,7 @@ function openCard(i) {
   const c = CARDS[i];
   // TV: which card is on (numbers and bank enums only), sharks listening. Never the spoken words.
   st.cardMirror?.custom('card', { state: 'pitching', step: i + 1, items: ['seth', 'riya', 'kabir'].map((id) => ({ id })) });
-  $('card-kicker').textContent = `Card ${i + 1}/4 · ${c.kicker}`;
+  $('card-kicker').textContent = `${i + 1} of 4 · ${c.kicker}`;
   [...$('card-dots').children].forEach((d, j) => { d.className = j < i ? 'done' : j === i ? 'on' : ''; });
   $('card-q').textContent = c.q;
   $('card-hint').textContent = c.hint;
@@ -194,7 +173,7 @@ function openCard(i) {
   $('card-text').value = st.parts[c.id] || '';
   $('card-err').hidden = true;
   $('card-prompts').hidden = i !== 0;
-  $('card-next').textContent = i < 3 ? 'Agla card' : 'Pitch check karo';
+  $('card-next').textContent = i < 3 ? 'Next' : 'Check the brief';
   const el = $('card'); el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
   micUi('idle');
   extended = false;
@@ -211,14 +190,14 @@ function onTick() {
   $('card-ring').style.strokeDashoffset = String(RING * (1 - left / cardMs));
   if (left > 0) return;
   const text = $('card-text').value.trim();
-  if (!text && !extended) { extended = true; cardMs += 10000; $('card-err').textContent = 'Bas ek line bolo ya likho, phir aage!'; $('card-err').hidden = false; return; }
+  if (!text && !extended) { extended = true; cardMs += 10000; $('card-err').textContent = 'Add one line, then continue.'; $('card-err').hidden = false; return; }
   if (!text && cardIdx === 0) return; // the idea card needs at least a few words
   nextCard();
 }
 
 function nextCard() {
   const text = $('card-text').value.trim();
-  if (cardIdx === 0 && (text.match(/[\p{L}\p{N}]/gu) || []).length < 4) { $('card-err').textContent = 'Idea card mein thoda aur batao! Ek line kaafi hai.'; $('card-err').hidden = false; return; }
+  if (cardIdx === 0 && (text.match(/[\p{L}\p{N}]/gu) || []).length < 4) { $('card-err').textContent = 'Say a little more about the offer. One line is enough.'; $('card-err').hidden = false; return; }
   stopMic();
   clearInterval(tick);
   st.parts[CARDS[cardIdx].id] = text.slice(0, 220);
@@ -338,7 +317,7 @@ async function runTank() {
   show('s-tank');
   $('tank-idea').textContent = q.idea.title;
   $('tank-host').textContent = q.hostLine;
-  $('tank-row').replaceChildren(...q.panel.map((id) => avatar(id, { label: true })));
+  $('tank-row').replaceChildren(...q.panel.map((id) => reviewerMark(id)));
   st.mirror.custom('tank', { state: 'questions', title: q.tv.title, host: q.tv.host, items: q.panel.map((id) => ({ id })) });
   await sleep(800);
   for (const [i, id] of q.panel.entries()) {
@@ -354,7 +333,7 @@ function ask(i, id) {
   const q = st.q.questions[id];
   const row = [...$('tank-row').children];
   row.forEach((el, j) => { el.classList.toggle('is-active', j === i); el.classList.toggle('is-dim', j !== i); el.classList.toggle('is-done', j < i); });
-  $('tank-kicker').textContent = `Sawaal ${i + 1}/3 · ${PERSONA[id].short}`;
+  $('tank-kicker').textContent = `Question ${i + 1} of 3 · ${PERSONA[id].short}`;
   [...$('tank-dots').children].forEach((d, j) => { d.className = j < i ? 'done' : j === i ? 'on' : ''; });
   const bubble = $('bubble');
   bubble.dataset.shark = id;
@@ -370,7 +349,6 @@ function ask(i, id) {
   $('answer-own').onclick = () => { $('answer-row').classList.add('open'); $('answer-own').hidden = true; answer.focus(); };
   $('answer-chips').replaceChildren();
   st.mirror.custom('ask', { id, step: i + 1, total: 3, text: st.q.tv.questions[id] }); // TV: bank question only
-  talk(row[i], Math.min(4000, q.q.length * 30));
   const typed = typeInto($('bubble-q'), q.q, { cps: 42 });
 
   return new Promise((resolve) => {
@@ -421,9 +399,9 @@ async function showRedirect(res) {
   show('s-redirect');
   $('redirect-msg').textContent = res.message;
   $('s-redirect').classList.toggle('care', !!res.care);
-  $('redirect-title').textContent = res.care ? 'Hum tumhare saath hain' : 'Chalo, naya idea!';
-  $('redirect-kicker').textContent = res.care ? 'Ek zaroori baat' : 'Sharks ka chhota sa request';
-  $('redirect-again').textContent = res.care ? 'Wapas shuru karo' : 'Naya pitch karo';
+  $('redirect-title').textContent = res.care ? 'We are here with you' : 'Submit a real business';
+  $('redirect-kicker').textContent = res.care ? 'One important note' : 'This brief needs a change';
+  $('redirect-again').textContent = res.care ? 'Start again' : 'Start again';
   const list = res.care ? [] : (await loadPrompts()).slice(0, 4);
   $('redirect-prompts').replaceChildren(...list.map((p) => h('button', { class: 'sk-chip', type: 'button', onclick: () => { st.parts = { ...p.parts }; st.pick = { game: p.id, idea: 0, customer: 0, problem: 0, paisa: 0 }; openReview(); } }, p.prompt)));
 }
@@ -437,19 +415,19 @@ function showResult() {
   $('r-idea').textContent = q.idea.title;
   $('stamp').textContent = '?';
   $('stamp').className = 'sk-stamp';
-  $('total').textContent = 'Sharks ne decide kar liya!';
+  $('total').textContent = 'The review is ready.';
   $('stampbox').className = 'sk-stampbox locked';
   // Gate rule: no score, deal or take is in the DOM before "Maine follow kar liya".
   $('axes').replaceChildren(...AX.map(([id, label]) => h('div', { class: 'sk2-axis', 'data-axis': id }, h('span', {}, label), h('i', {}, h('b')), h('em', {}, '?'))));
   $('cards').replaceChildren(...q.panel.map((id) => h('div', { class: 'sk-card locked', 'data-shark': id },
-    avatar(id),
+    reviewerMark(id),
     h('div', { class: 'sk-card-body' },
       h('div', { class: 'sk-card-top' }, h('b', {}, PERSONA[id].name), h('span', { class: 'sk-pill' }, 'LOCKED')),
-      h('p', { class: 'sk-line' }, 'Faisla ready hai...'),
-      h('p', { class: 'sk-why' }, 'Follow karke unlock karo.')))));
+      h('p', { class: 'sk-line' }, 'Decision ready.'),
+      h('p', { class: 'sk-why' }, 'Open the review to read it.')))));
   $('unlock').hidden = false;
   $('after').hidden = true;
-  $('r-src').textContent = { claude: 'Made live by Claude', mock: 'Mock mode (no API key)', fixture: 'Offline mode: demo sharks', hero: 'Demo pitch (fictional, for filming)' }[st.v.source] || '';
+  $('r-src').textContent = { claude: 'Reviewed live', mock: 'Sample review. No API key.', fixture: 'Offline sample review', hero: 'Demo review' }[st.v.source] || '';
   show('s-result');
   track('complete');
   if (HERO) setTimeout(() => $('unlock').click(), 1600);
@@ -467,10 +445,10 @@ function sendTvResult() {
     max: tv.max,
     ins: tv.deals,
     values: tv.axes.map((a) => ({ id: a.id, label: a.label, value: a.value })),
-    scores: tv.sharks.map((s) => ({ id: s.id, label: s.deal ? 'DEAL' : 'OUT', line: s.take })),
+    scores: tv.sharks.map((s) => ({ id: s.id, label: s.deal ? 'PROCEED' : 'REWORK', line: s.take })),
     lesson: { title: tv.lesson },
     lines: [tv.line],
-    forFun: true,
+    forFun: false,
   });
 }
 
@@ -512,19 +490,18 @@ async function reveal() {
     await sleep(i ? 650 : 300);
     const s = v.sharks[id];
     const card = cards[i];
-    card.querySelector('.sk-pill').textContent = s.deal ? 'DEAL' : 'OUT';
+    card.querySelector('.sk-pill').textContent = s.deal ? 'PROCEED' : 'REWORK';
     card.querySelector('.sk-line').textContent = s.take;
-    card.querySelector('.sk-why').textContent = `"${PERSONA[id].catch}"`;
+    card.querySelector('.sk-why').textContent = PERSONA[id].role;
     card.classList.remove('locked');
     card.classList.add('open', s.deal ? 'is-in' : 'is-out');
-    talk(card.querySelector('.sk-av'), 1100);
   }
   await sleep(800);
   const deal = v.verdict === 'deal';
   $('stampbox').className = `sk-stampbox open ${deal ? 'deal' : 'out'}`;
-  $('stamp').textContent = deal ? 'DEAL!' : 'Main out hoon';
+  $('stamp').textContent = deal ? 'PROCEED' : 'REWORK';
   $('stamp').className = 'sk-stamp slam';
-  $('total').textContent = `${v.total}/40 · ${v.deals} of 3 sharks Deal`;
+  $('total').textContent = `${v.total}/40 · ${v.deals} of 3 reviewers would proceed`;
   navigator.vibrate?.(deal ? [40, 60, 80] : 60);
   await sleep(600);
 
@@ -542,18 +519,18 @@ async function reveal() {
   await sleep(Math.max(0, TV_REVEAL_MS - (performance.now() - st.tvRevealAt)));
   if (v.btoken) {
     const b = await postBoard(v.btoken);
-    if (b?.ok && b.rank) { $('r-board').hidden = false; $('r-board').textContent = `Aaj ke leaderboard pe #${b.rank}!`; }
+    if (b?.ok && b.rank) { $('r-board').hidden = false; $('r-board').textContent = `Ranked #${b.rank} among briefs reviewed today.`; }
   }
   if (st.turn && st.stage?.rewardToken) { const t = st.turn; st.turn = null; try { await st.stage.rewardToken(t); } catch { /* optional */ } }
 }
 
 $('unlock').addEventListener('click', async () => {
   if (HERO) setTimeout(() => document.querySelector('[data-pz="gate-unlock"]')?.click(), 2000);
-  await gate('shark', { reward: 'Scorecard, sharks ka faisla aur tumhara mini-MBA lesson' });
+  await gate('shark', { reward: 'The decision, each reviewer’s note, and the next step' });
   reveal();
 });
-$('share').addEventListener('click', () => { if (st.revealed && st.card) shareCard(st.card, { filename: 'zenith-ai-sharks.png' }); });
-$('friends').addEventListener('click', () => { if (st.revealed && st.card) sendToFriends(st.card, { text: 'Maine AI Sharks ko apna startup idea pitch kiya! Tum bhi try karo:', filename: 'zenith-ai-sharks.png' }); });
+$('share').addEventListener('click', () => { if (st.revealed && st.card) shareCard(st.card, { filename: 'ai-sharks-review.png' }); });
+$('friends').addEventListener('click', () => { if (st.revealed && st.card) sendToFriends(st.card, { text: 'AI Sharks reviewed this business. Here is the decision and the first fix:', filename: 'ai-sharks-review.png' }); });
 $('again').addEventListener('click', () => { st.mirror?.end(); show('s-intro'); });
 
 // ---------- ?demo=hero: a fictional pitch, end to end, for filming ----------
